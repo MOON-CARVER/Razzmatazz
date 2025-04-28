@@ -78,73 +78,26 @@ def Cart(request):
 
 User = get_user_model()
 
-# @login_required
-# def menu(request):
-#     cities = City.objects.all()
-#     selected_city = request.GET.get('city')
-#     if selected_city:
-#         restaurant_list = restaurantUser.objects.filter(city_id=selected_city)
-#     else:
-#         restaurant_list = restaurantUser.objects.all()
-#     cities = City.objects.all()
-#     user = request.user
-#     query = request.GET.get('q')
-#     foods = foodItems.objects.all()
-    
-#     if query:
-#         foods = foods.filter(Q(name__icontains=query))
-    
-#     cartEmpty = True
-#     if hasattr(user, 'customeruser'):
-#         name = user.customeruser.name
-#     else:
-#         name = "No name found"
 
-#     if 'cart' not in request.session:
-#         request.session['cart'] = {}
-
-#     if request.method == 'POST':
-#         id = request.POST.get("id")
-#         cart = request.session.get('cart', {})
-#         if id in cart:
-#             cart[id] += 1
-#             cartEmpty = False
-#         else:
-#             cart[id] = 1
-#             cartEmpty = False
-#         request.session['cart'] = cart
-
-#     list_restaurant = restaurantUser.objects.all()
-
-#     return render(request, 'home/index1.html', {
-#         'name': name,
-#         'foodItems': foods,
-#         'cart': request.session.get('cart', {}),
-#         'Empty': cartEmpty,
-#         'restaurant_list': restaurant_list,
-#         'cities': cities
-#     })
 
 @login_required
 def menu(request):
     user = request.user
-    show_all = request.GET.get('show_all', 'false').lower() == 'true'
-    
-    if hasattr(user, 'customeruser'):
+    show_all = request.GET.get('show_all', 'false').lower() == 'true'  # Check if 'show_all' is true
+
+    if hasattr(user, 'customeruser') and not show_all:
+        # Load restaurants filtered by the user's city
         customer_city = user.customeruser.city
         restaurant_list = restaurantUser.objects.filter(city=customer_city)
         foods = foodItems.objects.filter(restaurantName__city=customer_city)
     else:
+        # Load all restaurants
         restaurant_list = restaurantUser.objects.all()
         foods = foodItems.objects.all()
 
     query = request.GET.get('q')
     if query:
         foods = foods.filter(Q(name__icontains=query))
-
-    if show_all:
-        restaurant_list = restaurantUser.objects.all()
-        foods = foodItems.objects.all()
 
     # Pagination for restaurants
     restaurant_paginator = Paginator(restaurant_list, 8)
@@ -188,7 +141,7 @@ def menu(request):
         'Empty': cartEmpty,
         'restaurant_list': restaurant_page_obj,
         'cities': City.objects.all(),
-        'selected_city': customer_city.name if hasattr(user, 'customeruser') else None,
+        'selected_city': customer_city.name if hasattr(user, 'customeruser') and not show_all else None,
         'show_all': show_all,
     })
 
